@@ -3,6 +3,7 @@ from keras.layers import Concatenate, Reshape, Lambda, Multiply, multiply, conca
 from keras.models import Model
 from keras import backend as K
 
+import matplotlib.pyplot as plt
 import tensorflow as tf
 import numpy as np
 
@@ -17,15 +18,13 @@ class Human_Terms_Network():
         self.optimizer = optimizer
 
         # Build model here
-        # self.base = self.build_base_model()
-
-
         self.base_combined, self.combined = self.build_combined_model()
 
         self.base_combined.compile(loss=self.loss_function,
                         optimizer=self.optimizer,
                         metrics=['mae', 'acc'])
 
+        # set the trainable, whether train or not for the combined model. 
         self.base_combined.trainable = trainable
 
         self.combined.compile(loss=self.loss_function,
@@ -41,7 +40,6 @@ class Human_Terms_Network():
         
         return model
 
-    #input_shape, human_terms_shape
     def build_combined_model(self):
 
         # input for base model
@@ -74,6 +72,47 @@ class Human_Terms_Network():
 
         
         return base_model, combined_model
-
     
-        
+    def set_data(self, X_train, X_test, y_train_agreement, y_test_agreement, y_train, y_test):
+        self.X_train = X_train
+        self.X_test = X_test
+        self.y_train_agreement = y_train_agreement
+        self.y_test_agreement = y_test_agreement
+        self.y_train = y_train
+        self.y_test = y_test
+
+        # set the y_train tanh
+        self.y_tanh_train = self.y_train
+        self.y_tanh_train[self.y_tanh_train == 0] = -1
+
+        self.y_tanh_test = self.y_test
+        self.y_tanh_test[self.y_tanh_test == 0] = -1
+
+
+    def train(self, epochs=10, verbose=0, batch_size=1, show=True):
+        # Train the base model first with target label [-1, 1]
+        self.base_history = self.base_combined.fit(self.X_train, self.y_tanh_train,
+                                                    validation_data=(self.X_test, self.y_test),
+                                                    epochs=epochs, verbose=verbose, batch_size=batch_size)
+
+        self.combined_history = self.combined.fit([self.X_train, self.y_train_agreement], self.y_train, 
+                                                    validation_data=([self.X_test, self.y_test_agreement], self.y_test),
+                                                    epochs=epochs, verbose=verbose, batch_size=batch_size)
+
+        if show:
+            self.history_plot(self.base_history, 'base')
+            self.history_plot(self.combined_history, 'combined')
+
+    def history_plot(self, history, model_name):
+        plt.plot(history.history['acc'])
+        plt.plot(history.history['val_acc'])
+        plt.plot(history.history['loss'], 'm--')
+        plt.plot(history.history['val_loss'], 'y--')
+
+        plt.title('model loss history')
+        plt.xlabel('epoch')
+        plt.legend(['tr_acc', 'te_acc', 'tr_loss', 'te_loss'], loc='upper left')
+        plt.show()
+        plt.savefig('./',model_name,'.png')
+        plt.clf()
+
