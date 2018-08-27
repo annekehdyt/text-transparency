@@ -11,6 +11,18 @@ def open_pickle(path):
     return X
 
 '''
+This bundle is for loading the IMDB already pickled data
+'''
+def load_imdb(path):
+    # assume path = '../../data/imdb'
+    X_train_original = open_pickle(path + '/imdb_original_preprocessed_xtrain.pickle')
+    X_test_original = open_pickle(path + '/imdb_original_preprocessed_xtest.pickle')
+    y_train_original = open_pickle(path + '/imdb_original_preprocessed_ytrain.pickle')
+    y_test_original = open_pickle(path + '/imdb_original_preprocessed_ytest.pickle')
+
+    return X_train_original, X_test_original, y_train_original, y_test_original
+
+'''
 This bundle is for loading the AMAZON DATA
 '''
 def parse(path):
@@ -25,7 +37,7 @@ def extract_review_amazon(path, key):
     for l in text:
         corpus.append(l[key])
         y.append(l['overall'])
-    return corpus, y
+    return corpus, np.asarray(y)
 
 
 '''
@@ -88,7 +100,7 @@ def generate_appearance(X_train_corpus, X_test_corpus, word_list, connotation):
 
 
 '''
-Preprocessing
+Preprocessing / cleaning the data
 '''
 
 def load_list(filename, split_delimiter):

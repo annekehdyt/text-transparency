@@ -24,7 +24,7 @@ def amazon_data():
 
     # split
     print('Split train-test...')
-    X_train_split, X_test_split, y_trn, y_test = train_test_split(X_discarded, y_discarded, test_size=0.33, random_state=42)
+    X_train_split, X_test_split, y_train, y_test = train_test_split(X_discarded, y_discarded, test_size=0.33, random_state=42)
 
     # preprocessing
     print('preprocess the data...')
@@ -69,5 +69,5 @@ if __name__ == '__main__':
 
     htm.train(epochs=50, verbose=1)
 
-    
+
 
