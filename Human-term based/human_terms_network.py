@@ -137,13 +137,13 @@ class Human_Terms_Network():
             total_reject = self.X_test.shape[0] - len(accept_indices)
             rejection_rate = total_reject/self.X_test.shape[0]
 
-            test_lost, test_accuracy = self.combined.evaluate([self.X_test[accept_indices], self.y_test_agreement[accept_indices]], self.y_test[accept_indices])
+            test_eval = self.combined.evaluate([self.X_test[accept_indices], self.y_test_agreement[accept_indices]], self.y_test[accept_indices])
         else:
             # Test as usual
             rejection_rate = 0
-            test_lost, test_accuracy = self.combined.evaluate([self.X_test, self.y_test_agreement], self.y_test)
+            test_eval = self.combined.evaluate([self.X_test, self.y_test_agreement], self.y_test)
         
-        return test_lost, test_accuracy, rejection_rate
+        return test_eval, rejection_rate
 
     def history_plot(self, history, model_name):
         plt.plot(history.history['acc'])
