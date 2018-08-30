@@ -19,9 +19,10 @@ class LRBaseline():
         #
         self.imdb = imdb
         self.amazon = amazon
+        self.token = r"(?u)\b[\w\'/]+\b"
 
     def baseline(self, penalty='l2'):
-        self.baseline_cv = CountVectorizer(min_df=self.min_df)
+        self.baseline_cv = CountVectorizer(min_df=self.min_df, binary=True, lowercase=True, token_pattern=self.token)
 
         X_train = self.baseline_cv.fit_transform(self.X_train_corpus)
         X_test = self.baseline_cv.transform(self.X_test_corpus)
