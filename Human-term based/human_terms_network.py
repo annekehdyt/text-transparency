@@ -11,7 +11,7 @@ import numpy as np
 class Human_Terms_Network():
     def __init__(self, input_shape, human_terms_shape, domain,
                 loss_function='mse', 
-                optimizer='Adagrad', 
+                optimizer='adam', 
                 trainable=True):
         self.input_shape = input_shape
         self.human_terms_shape = human_terms_shape
@@ -23,14 +23,14 @@ class Human_Terms_Network():
 
         self.base_combined.compile(loss=self.loss_function,
                         optimizer=self.optimizer,
-                        metrics=['mae', 'acc'])
+                        metrics=['acc'])
 
         # set the trainable, whether train or not for the combined model. 
         self.base_combined.trainable = trainable
 
         self.combined.compile(loss=self.loss_function,
                         optimizer=self.optimizer,
-                        metrics=['mae','acc'])
+                        metrics=['acc'])
 
         self.domain = domain
         
@@ -134,6 +134,7 @@ class Human_Terms_Network():
                                             outputs=self.combined.get_layer('concatenate').output)
             predict_relu = self.human_terms_relu_model.predict([self.X_test, self.y_test_agreement])
             accept_indices = np.where(np.sum(predict_relu, axis=1)!=0)
+            accept_indices = accept_indices[0]
             total_reject = self.X_test.shape[0] - len(accept_indices)
             rejection_rate = total_reject/self.X_test.shape[0]
 
