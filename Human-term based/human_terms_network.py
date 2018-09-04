@@ -101,9 +101,11 @@ class Human_Terms_Network():
 
 
     def train(self, epochs=10, verbose=1, batch_size=1, show_graph=True, save_model=True):
+        split_point = np.int(self.X_train.shape[0]*(2/3))
+
         # Train the base model first with target label [-1, 1]
-        self.base_history = self.base_combined.fit(self.X_train, self.y_tanh_train,
-                                                    validation_split=0.33, shuffle=True,
+        self.base_history = self.base_combined.fit(self.X_train[:split_point], self.y_tanh_train[:split_point],
+                                                    validation_data=([self.X_train[split_point:], self.y_tanh_train[split_point:]]),
                                                     epochs=epochs, verbose=verbose, batch_size=batch_size)
 
         # Set check point for 
@@ -115,8 +117,8 @@ class Human_Terms_Network():
         else:
             self.callbacks_list = None
 
-        self.combined_history = self.combined.fit([self.X_train, self.y_train_agreement], self.y_train, 
-                                                    validation_split=0.33, shuffle=True,
+        self.combined_history = self.combined.fit([self.X_train[:split_point], self.y_train_agreement[:split_point]], self.y_train[:split_point], 
+                                                    validation_data=([[self.X_train[split_point:], self.y_train_agreement[split_point:]], self.y_train[split_point:]]),
                                                     epochs=epochs, verbose=verbose, batch_size=batch_size,
                                                     callbacks=self.callbacks_list)
 
