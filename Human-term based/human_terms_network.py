@@ -3,6 +3,7 @@ from keras.layers import Concatenate, Reshape, Lambda, Multiply, multiply, conca
 from keras.callbacks import ModelCheckpoint
 from keras.models import Model
 from keras import backend as K
+from keras.initializers import Constant, glorot_uniform
 
 import matplotlib.pyplot as plt
 from matplotlib import style
