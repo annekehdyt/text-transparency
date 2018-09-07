@@ -35,9 +35,9 @@ class Human_Terms_Network():
         
 
     def build_base_model(self):
-        input_layer = Input(shape=(X_train.shape[1],))
+        input_layer = Input(shape=(self.input_shape,))
         output = Dense(1, activation='sigmoid', kernel_initializer=glorot_uniform(seed=42))(input_layer)
-        model = Model(inputs=input_layer, outputs=tanh_output)
+        model = Model(inputs=input_layer, outputs=output)
         
         return model
 
@@ -53,7 +53,7 @@ class Human_Terms_Network():
         split = Lambda(self.layer_split)(ht_input_layer)
 
         # get the document prediction
-        label_layer = model(combined_input_layer)
+        label_layer = base_model(combined_input_layer)
         tanh_norm = Lambda(lambda x: (x*2)-1)(label_layer)
         
         # multiply the predicion and the human terms absence -> pass it to relu
@@ -88,35 +88,27 @@ class Human_Terms_Network():
         self.y_train = y_train
         self.y_test = y_test
 
-        # set the y_train tanh
-        self.y_tanh_train = self.y_train
-        self.y_tanh_train[self.y_tanh_train == 0] = -1
 
-        self.y_tanh_test = self.y_test
-        self.y_tanh_test[self.y_tanh_test == 0] = -1
-
-
-    def train(self, epochs=10, verbose=1, batch_size=1, show_graph=True, save_model=True):
+    def train(self, epochs=10, verbose=1, batch_size=1, show_graph=True, save_model=True, base_train=True):
         split_point = np.int(self.X_train.shape[0]*(2/3))
 
         self.base_combined.compile(loss=self.loss_function,
                         optimizer=self.optimizer,
                         metrics=['acc'])
 
-       # Train the base model first with target label [-1, 1]
-        self.base_history = self.base_combined.fit(self.X_train[:split_point], self.y_tanh_train[:split_point],
-                                                    validation_data=([self.X_train[split_point:], self.y_tanh_train[split_point:]]),
+       
+        if base_train:
+            self.base_history = self.base_combined.fit(self.X_train[:split_point], self.y_train_original[:split_point],
+                                                    validation_data=([self.X_train[split_point:], self.y_train_original[split_point:]]),
                                                     epochs=epochs, verbose=verbose, batch_size=batch_size)
 
+            self.base_combined.trainable = self.trainable
 
-        # set the trainable, whether train or not for the combined model. 
-        self.base_combined.trainable = self.trainable
-
+        # Start the combined model here.
         self.combined.compile(loss=self.loss_function,
                         optimizer=self.optimizer,
                         metrics=['acc'])
 
- 
         # Set check point for 
 
         if save_model:
@@ -126,11 +118,12 @@ class Human_Terms_Network():
         else:
             self.callbacks_list = None
 
-        self.combined_history = self.combined.fit([self.X_train[:split_point], self.y_train_agreement[:split_point]], self.y_train[:split_point], 
-                                                    validation_data=([[self.X_train[split_point:], self.y_train_agreement[split_point:]], self.y_train[split_point:]]),
-                                                    epochs=epochs, verbose=verbose, batch_size=batch_size,
-                                                    callbacks=self.callbacks_list)
+        self.combined_history = self.combined.fit([self.X_train[:split_point], self.y_train_agreement[:split_point]], self.y_train_original[:split_point], 
+                                            validation_data=([self.X_train[split_point:], self.y_train_agreement[split_point:]], self.y_train_original[split_point:]),
+                                            batch_size=batch_size, epochs=epochs, verbose=verbose,
+                                            callbacks=self.callbacks_list)
 
+        # Print the train-val loss-acc graph
         if show_graph:
             self.history_plot(self.base_history, 'base')
             self.history_plot(self.combined_history, 'combined')
