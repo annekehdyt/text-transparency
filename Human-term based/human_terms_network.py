@@ -5,14 +5,23 @@ from keras.models import Model
 from keras import backend as K
 
 import matplotlib.pyplot as plt
+from matplotlib import style
+style.use('seaborn-whitegrid')
+
 import tensorflow as tf
 import numpy as np
 
 class Human_Terms_Network():
     def __init__(self, input_shape, human_terms_shape, domain,
-                loss_function='mse', 
+                loss_function='binary_crossentropy', 
                 optimizer='adam', 
                 trainable=True):
+
+        # Set seed for numpy and tensorflow everytime it calls the new object. 
+        np.random.seed(42)
+        tf.set_random_seed(42)
+
+        # input shape of # features (word) and human_terms shape
         self.input_shape = input_shape
         self.human_terms_shape = human_terms_shape
         self.loss_function = loss_function
@@ -21,26 +30,14 @@ class Human_Terms_Network():
         # Build model here
         self.base_combined, self.combined = self.build_combined_model()
 
-        self.base_combined.compile(loss=self.loss_function,
-                        optimizer=self.optimizer,
-                        metrics=['acc'])
-
-        # set the trainable, whether train or not for the combined model. 
-        self.base_combined.trainable = trainable
-
-        self.combined.compile(loss=self.loss_function,
-                        optimizer=self.optimizer,
-                        metrics=['acc'])
-
+        self.trainable = trainable
         self.domain = domain
         
 
     def build_base_model(self):
-        input_layer = Input(shape=(self.input_shape,))
-        tanh_output = Dense(1, activation='tanh', name='tanh_output')(input_layer)
-        
+        input_layer = Input(shape=(X_train.shape[1],))
+        output = Dense(1, activation='sigmoid', kernel_initializer=glorot_uniform(seed=42))(input_layer)
         model = Model(inputs=input_layer, outputs=tanh_output)
-        model.summary()
         
         return model
 
@@ -56,7 +53,8 @@ class Human_Terms_Network():
         split = Lambda(self.layer_split)(ht_input_layer)
 
         # get the document prediction
-        label_layer = base_model(combined_input_layer)
+        label_layer = model(combined_input_layer)
+        tanh_norm = Lambda(lambda x: (x*2)-1)(label_layer)
         
         # multiply the predicion and the human terms absence -> pass it to relu
         dense_layer = []
@@ -65,7 +63,7 @@ class Human_Terms_Network():
                 1, 
                 activation='relu', 
                 use_bias=False, 
-                kernel_initializer='ones')(Multiply()([split[i], label_layer])))
+                kernel_initializer='ones')(Multiply()([split[i], tanh_norm])))
 
         # concat all the result and pass it to sigmoid layer
         concat = Lambda(self.layer_concat, name='concatenate')(dense_layer)
@@ -73,9 +71,7 @@ class Human_Terms_Network():
 
         # build model
         combined_model = Model(inputs=[combined_input_layer, ht_input_layer], outputs=output_layer)
-        combined_model.summary()
 
-        
         return base_model, combined_model
     
     def layer_split(self, x):
@@ -103,11 +99,24 @@ class Human_Terms_Network():
     def train(self, epochs=10, verbose=1, batch_size=1, show_graph=True, save_model=True):
         split_point = np.int(self.X_train.shape[0]*(2/3))
 
-        # Train the base model first with target label [-1, 1]
+        self.base_combined.compile(loss=self.loss_function,
+                        optimizer=self.optimizer,
+                        metrics=['acc'])
+
+       # Train the base model first with target label [-1, 1]
         self.base_history = self.base_combined.fit(self.X_train[:split_point], self.y_tanh_train[:split_point],
                                                     validation_data=([self.X_train[split_point:], self.y_tanh_train[split_point:]]),
                                                     epochs=epochs, verbose=verbose, batch_size=batch_size)
 
+
+        # set the trainable, whether train or not for the combined model. 
+        self.base_combined.trainable = self.trainable
+
+        self.combined.compile(loss=self.loss_function,
+                        optimizer=self.optimizer,
+                        metrics=['acc'])
+
+ 
         # Set check point for 
 
         if save_model:
